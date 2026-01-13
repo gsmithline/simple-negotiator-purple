@@ -20,9 +20,12 @@ from a2a.types import (
     AgentCapabilities,
     AgentSkill,
     Part,
+    Task,
     TaskState,
     TextPart,
+    UnsupportedOperationError,
 )
+from a2a.utils.errors import ServerError
 from a2a.utils import new_agent_text_message, new_task
 import uvicorn
 
@@ -83,6 +86,12 @@ class SimpleNegotiatorExecutor(AgentExecutor):
                     TaskState.completed,
                     new_agent_text_message(json.dumps(error_response), context_id=context.context_id),
                 )
+
+    async def cancel(
+        self, request: RequestContext, event_queue: EventQueue
+    ) -> Task | None:
+        """Cancel is not supported by this agent."""
+        raise ServerError(error=UnsupportedOperationError())
 
 
 def create_agent_card(url: str) -> AgentCard:
