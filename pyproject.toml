@@ -1,0 +1,18 @@
+[project]
+name = "simple-negotiator-purple"
+version = "1.0.0"
+description = "Simple aspiration-based negotiator for AgentBeats Meta-Game evaluation"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "a2a-sdk[http-server]>=0.3.0",
+    "uvicorn>=0.30.0",
+    "starlette>=0.38.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = []

@@ -1,0 +1,9 @@
+[agent]
+name = "Simple Aspiration Negotiator"
+version = "1.0.0"
+description = "A simple aspiration-based negotiator for AgentBeats bargaining evaluation"
+
+[agent.skills.negotiation]
+name = "Aspiration-Based Negotiation"
+description = "Negotiates item allocations using aspiration-based strategy"
+tags = ["negotiation", "bargaining", "aspiration"]
