@@ -2,17 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install uv for fast package management
-RUN pip install uv
+# Install dependencies directly
+RUN pip install "a2a-sdk[http-server]>=0.3.0" uvicorn starlette
 
-# Copy project files
-COPY pyproject.toml .
-COPY README.md .
+# Copy application files
 COPY main.py .
 COPY negotiator.py .
-
-# Install dependencies
-RUN uv pip install --system -e .
 
 # Expose port
 ENV PORT=8080
