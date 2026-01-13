@@ -12,6 +12,8 @@ from typing import Any
 
 from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
+from a2a.server.agent_execution import AgentExecutor, RequestContext
+from a2a.server.events import EventQueue
 from a2a.server.tasks import InMemoryTaskStore, TaskUpdater
 from a2a.types import (
     AgentCard,
@@ -21,7 +23,7 @@ from a2a.types import (
     TaskState,
     TextPart,
 )
-from a2a.utils import new_agent_text_message
+from a2a.utils import new_agent_text_message, new_task
 import uvicorn
 
 from negotiator import AspirationNegotiator, handle_negotiation_message
@@ -30,32 +32,36 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("simple_negotiator")
 
 
-class SimpleNegotiatorExecutor:
+class SimpleNegotiatorExecutor(AgentExecutor):
     """Executor for the simple negotiator agent."""
 
     def __init__(self):
         self.negotiator = AspirationNegotiator(keep_fraction=0.85, accept_slack=0.05)
-        self.conversations: dict[str, list[dict]] = {}
 
-    async def execute(self, request: Any, updater: TaskUpdater) -> None:
+    async def execute(
+        self,
+        context: RequestContext,
+        event_queue: EventQueue,
+    ) -> None:
         """Handle incoming negotiation requests."""
         try:
-            # Extract the message from the request
-            message_text = ""
-            if hasattr(request, 'message') and request.message:
-                if hasattr(request.message, 'parts'):
-                    for part in request.message.parts:
-                        if hasattr(part, 'root') and hasattr(part.root, 'text'):
-                            message_text += part.root.text
-                        elif hasattr(part, 'text'):
-                            message_text += part.text
-                elif hasattr(request.message, 'text'):
-                    message_text = request.message.text
-
-            if not message_text:
-                message_text = str(request)
-
+            # Get the message text from context
+            message_text = context.get_user_input()
             logger.info(f"Received message: {message_text[:500]}...")
+
+            # Create task and updater
+            msg = context.message
+            if msg:
+                task = new_task(msg)
+                await event_queue.enqueue_event(task)
+            else:
+                # Return simple response without task
+                response = handle_negotiation_message(message_text, self.negotiator)
+                response_text = json.dumps(response, indent=2)
+                logger.info(f"Sending response: {response_text}")
+                return
+
+            updater = TaskUpdater(event_queue, task.id, task.context_id)
 
             # Process the negotiation message
             response = handle_negotiation_message(message_text, self.negotiator)
@@ -66,16 +72,17 @@ class SimpleNegotiatorExecutor:
             # Send the response
             await updater.update_status(
                 TaskState.completed,
-                new_agent_text_message(response_text),
+                new_agent_text_message(response_text, context_id=context.context_id),
             )
 
         except Exception as e:
             logger.error(f"Error processing request: {e}", exc_info=True)
             error_response = {"error": str(e), "action": "WALK"}
-            await updater.update_status(
-                TaskState.completed,
-                new_agent_text_message(json.dumps(error_response)),
-            )
+            if 'updater' in locals():
+                await updater.update_status(
+                    TaskState.completed,
+                    new_agent_text_message(json.dumps(error_response), context_id=context.context_id),
+                )
 
 
 def create_agent_card(url: str) -> AgentCard:
