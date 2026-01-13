@@ -4,6 +4,7 @@ Simple Negotiator Purple Agent - A2A Server
 A simple aspiration-based negotiation agent for testing the Meta-Game
 Negotiation Assessor on AgentBeats.
 """
+import argparse
 import json
 import logging
 import os
@@ -113,9 +114,15 @@ def create_agent_card(url: str) -> AgentCard:
 
 
 def main():
-    host = os.environ.get("HOST", "0.0.0.0")
-    port = int(os.environ.get("AGENT_PORT", os.environ.get("PORT", "8080")))
-    base_url = os.environ.get("AGENT_URL", f"http://{host}:{port}/")
+    parser = argparse.ArgumentParser(description="Simple Negotiator A2A Agent")
+    parser.add_argument("--host", type=str, default=os.environ.get("HOST", "0.0.0.0"))
+    parser.add_argument("--port", type=int, default=int(os.environ.get("AGENT_PORT", os.environ.get("PORT", "8080"))))
+    parser.add_argument("--card-url", type=str, default=None)
+    args = parser.parse_args()
+
+    host = args.host
+    port = args.port
+    base_url = args.card_url or os.environ.get("AGENT_URL", f"http://{host}:{port}/")
 
     logger.info(f"Starting Simple Negotiator on {host}:{port}")
     logger.info(f"Agent URL: {base_url}")

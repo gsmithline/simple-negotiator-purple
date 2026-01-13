@@ -13,5 +13,6 @@ COPY negotiator.py .
 ENV PORT=8080
 EXPOSE 8080
 
-# Run the agent
-CMD ["python", "main.py"]
+# ENTRYPOINT accepts CLI args from compose; CMD provides defaults
+ENTRYPOINT ["python", "main.py"]
+CMD ["--host", "0.0.0.0", "--port", "8080"]
